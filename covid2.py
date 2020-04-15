@@ -1,15 +1,17 @@
-import datetime
-import requests
+from datetime import datetime
+from requests import get
 import tkinter as tk 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import (
 	FigureCanvasTkAgg, NavigationToolbar2Tk)
-import colorsys
+from colorsys import hsv_to_rgb
 import math
 from lxml import html
-import decimal
-import pickle
-import os
+from decimal import Decimal
+from pickle import load 
+from pickle import dump
+from os import path
+from os import makedirs
 
 
 def concatIfQuotes(data):
@@ -21,11 +23,11 @@ def concatIfQuotes(data):
 	return data
 
 def getDataWithoutDB(forceUpdate=False):
-	if not forceUpdate and os.path.exists("donnees_corona_virus.obj") : 
-		lastModified = datetime.datetime.fromtimestamp(os.path.getmtime("donnees_corona_virus.obj"))
-		if datetime.datetime.now().date() == lastModified.date() :
+	if not forceUpdate and path.exists("donnees_corona_virus.obj") : 
+		lastModified = datetime.fromtimestamp(path.getmtime("donnees_corona_virus.obj"))
+		if datetime.now().date() == lastModified.date() :
 			try:
-				return pickle.load(open("donnees_corona_virus.obj", "rb"))
+				return load(open("donnees_corona_virus.obj", "rb"))
 			except:
 				pass
 	print("Fetching data without database...")
@@ -51,19 +53,19 @@ def getDataWithoutDB(forceUpdate=False):
 
 		reports = {'cases': {}, 'deaths':{}, 'recovered': {} }
 		for iDay in range(4, len(data)) :
-			reports['cases'][datetime.datetime.strptime(caseLines[0].split(",")[iDay].strip(), "%m/%d/%y")] = int(data[iDay])
+			reports['cases'][datetime.strptime(caseLines[0].split(",")[iDay].strip(), "%m/%d/%y")] = int(data[iDay])
 			if data[1] in countries:
-				countries[data[1]]['daily_reports']['cases'][datetime.datetime.strptime(caseLines[0].split(",")[iDay].strip(), "%m/%d/%y")] += int(data[iDay])
+				countries[data[1]]['daily_reports']['cases'][datetime.strptime(caseLines[0].split(",")[iDay].strip(), "%m/%d/%y")] += int(data[iDay])
 		for iDay in range(4, len(deadData)) :
-			reports['deaths'][datetime.datetime.strptime(deadLines[0].split(",")[iDay].strip(), "%m/%d/%y")] = int(deadData[iDay])
+			reports['deaths'][datetime.strptime(deadLines[0].split(",")[iDay].strip(), "%m/%d/%y")] = int(deadData[iDay])
 			if data[1] in countries:
-				countries[data[1]]['daily_reports']['deaths'][datetime.datetime.strptime(deadLines[0].split(",")[iDay].strip(), "%m/%d/%y")] += int(deadData[iDay])
+				countries[data[1]]['daily_reports']['deaths'][datetime.strptime(deadLines[0].split(",")[iDay].strip(), "%m/%d/%y")] += int(deadData[iDay])
 		for iDay in range(4, len(recoData)) :
 			# print(recoData[1])
 			# print(len(recoLines[0].split(",")), iDay)
-			reports['recovered'][datetime.datetime.strptime(recoLines[0].split(",")[iDay].strip(), "%m/%d/%y")] = int(recoData[iDay])
+			reports['recovered'][datetime.strptime(recoLines[0].split(",")[iDay].strip(), "%m/%d/%y")] = int(recoData[iDay])
 			if data[1] in countries:
-				countries[data[1]]['daily_reports']['recovered'][datetime.datetime.strptime(recoLines[0].split(",")[iDay].strip(), "%m/%d/%y")] += int(recoData[iDay])
+				countries[data[1]]['daily_reports']['recovered'][datetime.strptime(recoLines[0].split(",")[iDay].strip(), "%m/%d/%y")] += int(recoData[iDay])
 
 		if data[0]:
 			states[data[0]] = {'name':data[0], 'latitude':data[2], 'longitude':data[3], 'id_state':len(states)//2, 'country_name':data[1], 'daily_reports':reports}
@@ -85,13 +87,13 @@ def getDataWithoutDB(forceUpdate=False):
 		country['state'] = states[state]
 		countries[country['id_country']] = country 
 
-	pickle.dump({'countries' : countries, 'states' : states}, open("donnees_corona_virus.obj", "wb"))
+	dump({'countries' : countries, 'states' : states}, open("donnees_corona_virus.obj", "wb"))
 	return {'countries' : countries, 'states' : states}
 
 
 
 def HSL(i, N, sat=0.5) :
-	return colorsys.hsv_to_rgb(i*1.0/N, sat, sat) 
+	return hsv_to_rgb(i*1.0/N, sat, sat) 
 
 
 class Splash(tk.Toplevel):
@@ -239,12 +241,12 @@ class Application(tk.Frame):
 		self.ax.set_title('Evolution of cases of COVID-19')
 		self.ax.set_xlabel('Date')
 		self.ax.set_ylabel('Number of cases')
-		self.ax.set_xticks([x.strftime("%d/%m") for x in country['daily_reports']["recovered"].keys() if x.day in (1, 7, 15, 22) or x.date() == datetime.datetime.now().date()]) # Tous les 15 jours
+		self.ax.set_xticks([x.strftime("%d/%m") for x in country['daily_reports']["recovered"].keys() if x.day in (1, 7, 15, 22) or x.date() == datetime.now().date()]) # Tous les 15 jours
 		self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 		self.canvas.draw()
 
 	def displaySIR(self, event):
-		populationRateSusceptible = decimal.Decimal(4/10)
+		populationRateSusceptible = Decimal(4/10)
 		liste = event.widget
 		sel = liste.curselection()
 		iListe = [i for i, _liste in enumerate(self.countriesLists) if liste == _liste][0]
